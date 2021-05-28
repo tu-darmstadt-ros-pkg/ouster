@@ -88,9 +88,14 @@ int OusterCloudNodelet::run() {
   ROS_INFO("[OusterCloudNodelet] tf_prefix: %s", tf_prefix.c_str());
   if (!tf_prefix.empty() && tf_prefix.back() != '/')
     tf_prefix.append("/");
-  sensor_frame_ = tf_prefix + "os_sensor";
-  imu_frame_    = tf_prefix + "os_imu";
-  lidar_frame_  = tf_prefix + "os_lidar";
+  
+  std::string sensor_frame_name = nh.param<std::string>("sensor_frame_name", "os_sensor");
+  std::string imu_frame_name = nh.param<std::string>("imu_frame_name", "os_imu");
+  std::string lidar_frame_name = nh.param<std::string>("lidar_frame_name", "os_lidar");
+
+  sensor_frame_ = tf_prefix + sensor_frame_name;
+  imu_frame_ = tf_prefix + imu_frame_name;
+  lidar_frame_ = tf_prefix + lidar_frame_name;
 
   ouster_ros::OSConfigSrv cfg{};
   auto                    client = nh.serviceClient<ouster_ros::OSConfigSrv>("os_config");
