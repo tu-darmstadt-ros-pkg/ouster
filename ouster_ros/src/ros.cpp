@@ -65,8 +65,8 @@ sensor_msgs::Imu packet_to_imu_msg(const PacketMsg& p, const std::string& frame,
 }
 
 void scan_to_cloud(const ouster::XYZLut& xyz_lut,
-                   ouster::LidarScan::ts_t scan_ts, const ouster::LidarScan& ls,
-                   ouster_ros::Cloud& cloud) {
+                   ouster::LidarScan::ts_t scan_ts, const sensor::sensor_info& info,
+                   const ouster::LidarScan& ls, ouster_ros::Cloud& cloud) {
     cloud.resize(ls.w * ls.h);
     auto points = ouster::cartesian(ls, xyz_lut);
 
@@ -75,7 +75,8 @@ void scan_to_cloud(const ouster::XYZLut& xyz_lut,
             const auto xyz = points.row(u * ls.w + v);
             const auto pix = ls.data.row(u * ls.w + v);
             const auto ts = (ls.header(v).timestamp - scan_ts).count();
-            cloud(v, u) = ouster_ros::Point{
+            const size_t vv = (v + ls.w + info.format.pixel_shift_by_row[u]) % ls.w;
+            cloud(vv, u) = ouster_ros::Point{
                 {{static_cast<float>(xyz(0)), static_cast<float>(xyz(1)),
                   static_cast<float>(xyz(2)), 1.0f}},
                 static_cast<float>(pix(ouster::LidarScan::INTENSITY)),

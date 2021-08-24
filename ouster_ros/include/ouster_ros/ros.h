@@ -64,7 +64,7 @@ sensor_msgs::Imu packet_to_imu_msg(const PacketMsg& pm,
  * @param cloud output pcl pointcloud to populate
  */
 void scan_to_cloud(const ouster::XYZLut& xyz_lut,
-                   ouster::LidarScan::ts_t scan_ts, const ouster::LidarScan& ls,
+                   ouster::LidarScan::ts_t scan_ts, const sensor::sensor_info& info, const ouster::LidarScan& ls,
                    ouster_ros::Cloud& cloud);
 
 /**
