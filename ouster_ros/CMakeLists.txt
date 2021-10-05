@@ -118,12 +118,10 @@ target_link_libraries(OusterImgNodelet ouster_ros ${catkin_LIBRARIES})
 add_dependencies(OusterImgNodelet ${PROJECT_NAME}_gencpp)
 
 # # ==== Install ====
-# install(
-#   TARGETS ouster_ros OusterNodelet OusterCloudNodelet viz_node img_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-# install(
-#   DIRECTORY ${_ouster_ros_INCLUDE_DIRS}
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
-# install(FILES ouster.launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(
+   TARGETS ouster_ros OusterNodelet OusterCloudNodelet OusterImgNodelet
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+install(DIRECTORY ${_ouster_ros_INCLUDE_DIRS} DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
