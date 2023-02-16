@@ -190,10 +190,14 @@ int OusterImgNodelet::run() {
       }
     }
 
-    range_image_pub_.publish(range_image);
-    ambient_image_pub_.publish(ambient_image);
-    intensity_image_pub_.publish(intensity_image);
-    reflectivity_image_pub_.publish(reflectivity_image);
+    if (range_image_pub_.getNumSubscribers() > 0)
+      range_image_pub_.publish(range_image);
+    if (ambient_image_pub_.getNumSubscribers() > 0)
+      ambient_image_pub_.publish(ambient_image);
+    if (intensity_image_pub_.getNumSubscribers() > 0)
+      intensity_image_pub_.publish(intensity_image);
+    if (reflectivity_image_pub_.getNumSubscribers() > 0)
+      reflectivity_image_pub_.publish(reflectivity_image);
     ROS_INFO_THROTTLE(3.0, "[OusterImgNodelet]: publishing images");
   };
 
