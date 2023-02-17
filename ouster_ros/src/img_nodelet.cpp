@@ -60,12 +60,13 @@ private:
   ros::Publisher  range_image_pub_;
   ros::Publisher  ambient_image_pub_;
   ros::Publisher  intensity_image_pub_;
+  ros::Publisher  reflectivity_image_pub_;
 
   sensor::sensor_info info_;
   uint32_t            H_;
   uint32_t            W_;
 
-  viz::AutoExposure            ambient_ae_, intensity_ae_;
+  viz::AutoExposure            ambient_ae_, intensity_ae_, reflectivity_ae_;
   viz::BeamUniformityCorrector ambient_buc_;
 
   std::string encoding_;
@@ -99,6 +100,7 @@ int OusterImgNodelet::run() {
   range_image_pub_     = nh.advertise<sensor_msgs::Image>("range_image", 100);
   ambient_image_pub_   = nh.advertise<sensor_msgs::Image>("ambient_image", 100);
   intensity_image_pub_ = nh.advertise<sensor_msgs::Image>("intensity_image", 100);
+  reflectivity_image_pub_ = nh.advertise<sensor_msgs::Image>("reflectivity_image", 100);
 
   /* ouster_ros::Cloud cloud{}; */
 
@@ -118,6 +120,7 @@ int OusterImgNodelet::run() {
     sensor_msgs::Image range_image;
     sensor_msgs::Image ambient_image;
     sensor_msgs::Image intensity_image;
+    sensor_msgs::Image reflectivity_image;
 
     range_image.width    = W_;
     range_image.height   = H_;
@@ -140,16 +143,25 @@ int OusterImgNodelet::run() {
     intensity_image.data.resize(W_ * H_ * bit_depth / (8 * sizeof(*intensity_image.data.data())));
     intensity_image.header.stamp = m->header.stamp;
 
+    reflectivity_image.width    = W_;
+    reflectivity_image.height   = H_;
+    reflectivity_image.step     = W_;
+    reflectivity_image.encoding = encoding_;
+    reflectivity_image.data.resize(W_ * H_ * bit_depth / (8 * sizeof(*reflectivity_image.data.data())));
+    reflectivity_image.header.stamp = m->header.stamp;
+
     using im_t = Eigen::Array<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
     im_t ambient_image_eigen(H_, W_);
     im_t intensity_image_eigen(H_, W_);
+    im_t reflectivity_image_eigen(H_, W_);
 
 
     for (size_t u = 0; u < H_; u++) {
       for (size_t v = 0; v < W_; v++) {
-        /* const size_t vv    = (v + W_ - px_offset[u]) % W_; */
-        const size_t vv = (v + W_ - info_.format.pixel_shift_by_row[u]) % W_;
-        const size_t index = u * W_ + vv;
+//        the received sensor_msgs::PointCloud is already de-staggered (from os_cloud_nodelet.cpp l. 134)
+//        const size_t vv = (v + W_ - info_.format.pixel_shift_by_row[u]) % W_;
+//        const size_t index = u * W_ + vv;
+        const size_t index = u * W_ + v;//vv;
         const auto& pt = cloud[index];
 
         if (pt.range == 0) {
@@ -160,24 +172,32 @@ int OusterImgNodelet::run() {
         }
         ambient_image_eigen(u, v) = pt.ambient;
         intensity_image_eigen(u, v) = pt.intensity;
+        reflectivity_image_eigen(u, v) = pt.reflectivity;
       }
     }
 
     ambient_buc_.correct(ambient_image_eigen);
     ambient_ae_(Eigen::Map<Eigen::ArrayXd>(ambient_image_eigen.data(), W_ * H_));
     intensity_ae_(Eigen::Map<Eigen::ArrayXd>(intensity_image_eigen.data(), W_ * H_));
+    reflectivity_ae_(Eigen::Map<Eigen::ArrayXd>(reflectivity_image_eigen.data(), W_ * H_));
     ambient_image_eigen   = ambient_image_eigen.sqrt();
     intensity_image_eigen = intensity_image_eigen.sqrt();
     for (size_t u = 0; u < H_; u++) {
       for (size_t v = 0; v < W_; v++) {
         reinterpret_cast<pixel_type*>(ambient_image.data.data())[u * W_ + v]   = ambient_image_eigen(u, v) * pixel_value_max;
         reinterpret_cast<pixel_type*>(intensity_image.data.data())[u * W_ + v] = intensity_image_eigen(u, v) * pixel_value_max;
+        reinterpret_cast<pixel_type*>(reflectivity_image.data.data())[u * W_ + v] = reflectivity_image_eigen(u, v) * pixel_value_max;
       }
     }
 
-    range_image_pub_.publish(range_image);
-    ambient_image_pub_.publish(ambient_image);
-    intensity_image_pub_.publish(intensity_image);
+    if (range_image_pub_.getNumSubscribers() > 0)
+      range_image_pub_.publish(range_image);
+    if (ambient_image_pub_.getNumSubscribers() > 0)
+      ambient_image_pub_.publish(ambient_image);
+    if (intensity_image_pub_.getNumSubscribers() > 0)
+      intensity_image_pub_.publish(intensity_image);
+    if (reflectivity_image_pub_.getNumSubscribers() > 0)
+      reflectivity_image_pub_.publish(reflectivity_image);
     ROS_INFO_THROTTLE(3.0, "[OusterImgNodelet]: publishing images");
   };
 
